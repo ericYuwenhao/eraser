@@ -23,40 +23,39 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
+import static java.awt.image.ImageObserver.WIDTH;
+
 /**
  * @user eric
  * @date 2020-03-17 9:06
+ * @TODO 适用于在Web情况下导出excel文件到本地的文件管理系统，此工具类并未采用poi的方式编写，所以对.xlsx格式的excel文件提供的支持并不完善
  */
 public class EraserForExcel2003 {
 
-    private static final String FILENAME = "防疫提报记录信息.xls";
-
-    private static final String ENCODE = "UTF-8";
-
-    private static final String HEAD1 = "content-disposition";
-
-    private static final String HEAD2 = "attachment;filename=";
-
-    private static final Integer WIDTH = 20;
-
-
-    public static <T> void downloadExcel(List<T> list) {
+    /**
+     * 用于在web端导出excel文件
+     * @param data 包含数据对象的集合，可以是任何对象类型
+     * @param title 包含excel表头的数据集合，注意，渲染到导出的excel中的表头的数据等同于声明此数组时嵌入数据的顺序
+     * @param filename 提供一个导出文件的文件名
+     * @param <T> 数据对象泛型
+     */
+    public static <T> void downloadExcel(List<T> data, List<String> title,String filename) {
         ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletResponse response = requestAttributes.getResponse();
         HttpServletRequest request = requestAttributes.getRequest();
         try {
             //写到服务器上
-            String path = request.getSession().getServletContext().getRealPath("") + "/" + FILENAME;
+            String path = request.getSession().getServletContext().getRealPath("") + "/" + filename;
             File file = new File(path);
             //创建写Excel对象
             WritableWorkbook workbook = Workbook.createWorkbook(file);
             //工作表
-            WritableSheet sheet = workbook.createSheet("防疫提报记录信息", 0);
-            //设置字体
+            WritableSheet sheet = workbook.createSheet(filename, 0);
+            //设置字体 todo 可配置
             WritableFont font = new WritableFont(WritableFont.ARIAL, 14, WritableFont.NO_BOLD, false, UnderlineStyle.NO_UNDERLINE, Colour.BLACK);
 
             WritableCellFormat cellFormat = new WritableCellFormat();
-            //设置背景颜色
+            //设置背景颜色 todo 可配置
             cellFormat.setBackground(Colour.WHITE);
             //设置边框
             cellFormat.setBorder(Border.ALL, BorderLineStyle.THIN);
@@ -70,55 +69,16 @@ public class EraserForExcel2003 {
             sheet.setColumnView(4, 60);
             sheet.setColumnView(5, 35);
             //给sheet电子版中的所有列设置默认的列的宽度
-            sheet.getSettings().setDefaultColumnWidth(WIDTH);
+            sheet.getSettings().setDefaultColumnWidth(20);
             //设置自动换行
             cellFormat.setWrap(true);
-            Label label0 = new Label(0, 0, "ID", cellFormat);
-            Label label1 = new Label(1, 0, "姓名", cellFormat);
-            Label label2 = new Label(2, 0, "身份证号码", cellFormat);
-            Label label3 = new Label(3, 0, "手机号", cellFormat);
-            Label label4 = new Label(4, 0, "小区", cellFormat);
-            Label label5 = new Label(5, 0, "楼座", cellFormat);
-            Label label6 = new Label(6, 0, "单元", cellFormat);
-            Label label7 = new Label(7, 0, "房间", cellFormat);
-            Label label8 = new Label(8, 0, "身份类型", cellFormat);
-            Label label9 = new Label(9, 0, "体温", cellFormat);
-            Label label10 = new Label(10, 0, "是否异常", cellFormat);
-            Label label11 = new Label(11, 0, "测量时间", cellFormat);
-            Label label12 = new Label(12, 0, "出行轨迹", cellFormat);
-            Label label13 = new Label(13, 0, "是否隔离", cellFormat);
-            Label label14 = new Label(14, 0, "隔离原因", cellFormat);
-            Label label15 = new Label(15, 0, "隔离开始时间", cellFormat);
-            Label label16 = new Label(16, 0, "隔离结束时间", cellFormat);
-            Label label17 = new Label(17, 0, "提报人", cellFormat);
-            Label label18 = new Label(18, 0, "是否删除", cellFormat);
-            Label label19 = new Label(19, 0, "创建用户", cellFormat);
-            Label label20 = new Label(20, 0, "创建时间", cellFormat);
-            Label label21 = new Label(21, 0, "更新用户", cellFormat);
-            Label label22 = new Label(22, 0, "更新时间", cellFormat);
-            sheet.addCell(label0);
-            sheet.addCell(label1);
-            sheet.addCell(label2);
-            sheet.addCell(label3);
-            sheet.addCell(label4);
-            sheet.addCell(label5);
-            sheet.addCell(label6);
-            sheet.addCell(label7);
-            sheet.addCell(label8);
-            sheet.addCell(label9);
-            sheet.addCell(label10);
-            sheet.addCell(label11);
-            sheet.addCell(label12);
-            sheet.addCell(label13);
-            sheet.addCell(label14);
-            sheet.addCell(label15);
-            sheet.addCell(label16);
-            sheet.addCell(label17);
-            sheet.addCell(label18);
-            sheet.addCell(label19);
-            sheet.addCell(label20);
-            sheet.addCell(label21);
-            sheet.addCell(label22);
+            /**
+             * 说明：传入参数data为数据列表，title为表头数据，表头数据的渲染跟插入的顺序有关
+             */
+            for (int i = 0; i < data.size(); i++) {
+                Label label = new Label(i, 0, title.get(i), cellFormat);
+                sheet.addCell(label);
+            }
 
 
             //给第二行设置背景，字体颜色，对齐方式等
@@ -136,7 +96,7 @@ public class EraserForExcel2003 {
             int up = 1;
             Method method;
             String column = "";
-            for (T model : list) {
+            for (T model : data) {
                 Field[] fields = model.getClass().getDeclaredFields();
                 for (int i = 0; i < fields.length; i++) {
                     String fieldName = fields[i].getName();
@@ -144,6 +104,7 @@ public class EraserForExcel2003 {
                     method = model.getClass().getMethod("get" + methodName);
                     Object invoke = method.invoke(model);
                     column = invoke.toString();
+                    //todo 
                     if (methodName.equalsIgnoreCase("measure_time") || methodName.equalsIgnoreCase("isolate_start_time") || methodName.equalsIgnoreCase("isolate_end_time")
                             || methodName.equalsIgnoreCase("create_time") || methodName.equalsIgnoreCase("update_time")) {
                         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -168,10 +129,10 @@ public class EraserForExcel2003 {
         //下载操作
         OutputStream out;
         try {
-            response.addHeader(HEAD1, HEAD2 + URLEncoder.encode(FILENAME, ENCODE));
+            response.addHeader("content-disposition", "attachment;filename=" + URLEncoder.encode(filename, "UTF-8"));
             //下载
             out = response.getOutputStream();
-            String path = request.getSession().getServletContext().getRealPath("") + "/" + FILENAME;
+            String path = request.getSession().getServletContext().getRealPath("") + "/" + filename;
             //读文件
             InputStream in = new FileInputStream(path);
             byte[] b = new byte[4096];
